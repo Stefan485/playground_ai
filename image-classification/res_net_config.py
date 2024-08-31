@@ -1,19 +1,3 @@
-# coding=utf-8
-# Copyright 2022 Microsoft Research, Inc. and The HuggingFace Inc. team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-"""ResNet model configuration"""
-
 from collections import OrderedDict
 from typing import Mapping
 from dataclasses import dataclass
@@ -90,9 +74,10 @@ class ResNetConfig:
         downsample_in_bottleneck=False,
         out_features=None,
         out_indices=None,
-        **kwargs,
+        label2id=None,
+        id2label=None
     ):
-        super().__init__(**kwargs)
+        super().__init__()
         if layer_type not in self.layer_types:
             raise ValueError(f"layer_type={layer_type} is not one of {','.join(self.layer_types)}")
         self.num_channels = num_channels
@@ -104,22 +89,10 @@ class ResNetConfig:
         self.downsample_in_first_stage = downsample_in_first_stage
         self.downsample_in_bottleneck = downsample_in_bottleneck
         self.stage_names = ["stem"] + [f"stage{idx}" for idx in range(1, len(depths) + 1)]
-        self._out_features, self._out_indices = get_aligned_output_features_output_indices(
-            out_features=out_features, out_indices=out_indices, stage_names=self.stage_names
-        )
-
-
-class ResNetOnnxConfig(OnnxConfig):
-    torch_onnx_minimum_version = version.parse("1.11")
-
-    @property
-    def inputs(self) -> Mapping[str, Mapping[int, str]]:
-        return OrderedDict(
-            [
-                ("pixel_values", {0: "batch", 1: "num_channels", 2: "height", 3: "width"}),
-            ]
-        )
-
-    @property
-    def atol_for_validation(self) -> float:
-        return 1e-3
+        self.out_indices = [len(self.stage_names) - 1]
+        self.out_features = [self.stage_names[-1]]
+        self.label2id = label2id
+        self.id2label = id2label
+        self.num_labels = len(label2id.keys()) + 1 #len(label2id.keys()) is 999 for some reason
+        self.use_return_dict = True
+        self.output_hidden_states = False
