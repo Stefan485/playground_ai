@@ -4,7 +4,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 import random
-from model import Configuration, VisionTransformer
+from model import Configuration, ViT
 from datasets import load_dataset
 from tqdm.auto import tqdm
 import math
@@ -28,7 +28,7 @@ class HFDataset(Dataset):
 max_lr = 3e-3
 min_lr = max_lr * 0.01
 warmup_ep = 10
-max_ep = 50
+max_ep = 100
 
 def get_lr(it):
 
@@ -83,7 +83,7 @@ def train(model, train_loader, valid_loader, optimizer, criterion, epochs, devic
 # TRANSFORMS
 # -------------------
 transform = transforms.Compose([
-    transforms.Resize((64, 64)),
+    transforms.Resize((224, 224)),
     transforms.Lambda(lambda img: img.convert("RGB")),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     random.seed(32)
 
     config = Configuration()
-    model = VisionTransformer(**config.as_dict()).to(device)
+    model = ViT(**config.as_dict()).to(device)
     torch.set_float32_matmul_precision('high')
 
     # Optional: torch.compile for speed
@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=3e-4, betas=(0.9, 0.95))
-    epochs = 50
+    epochs = 100
 
     # ds = load_dataset("benjamin-paine/imagenet-1k-64x64", cache_dir="./data")
     ds = load_dataset("timm/mini-imagenet", cache_dir="./data")

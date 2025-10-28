@@ -276,10 +276,6 @@ def setup_seed(seed=3407):
 	torch.backends.cudnn.benchmarks = False
 	torch.backends.cudnn.enabled = False
 
-
-
-
-
 @dataclass
 class Configuration:
     patch_size = 16

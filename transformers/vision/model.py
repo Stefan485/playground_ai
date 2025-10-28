@@ -1,8 +1,39 @@
 import math
 import torch
 import torch.nn as nn
+from dataclasses import dataclass
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+@dataclass
+class Configuration:
+    patch_size = 16
+    hidden_size = 64
+    num_hidden_layers = 2
+    num_attention_heads = 3
+    intermediate_size = 4 * hidden_size
+    num_classes = 100
+    hidden_dropout_prob = 0.04107314717204764
+    attention_probs_dropout_prob = 0.12206211476886523
+    image_size = 224
+    num_channels = 3
+    qkv_bias = True
+
+
+    def as_dict(self):
+
+        return {
+            "patch_size": self.patch_size,
+            "hidden_size": self.hidden_size,
+            "num_hidden_layers": self.num_hidden_layers,
+            "num_attention_heads": self.num_attention_heads,
+            "intermediate_size": 4 * self.hidden_size,
+            "num_classes": self.num_classes,
+            "hidden_dropout_prob": self.hidden_dropout_prob,
+            "attention_probs_dropout_prob": self.attention_probs_dropout_prob,
+            "image_size": self.image_size,
+            "num_channels": self.num_channels,
+            "qkv_bias": self.qkv_bias
+        }
+
 
 class Encoder(nn.Module):
     """
@@ -24,7 +55,7 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.blocks = nn.ModuleList([])
         for _ in range(num_hidden_layers):
-            block = EncoderBlock(hidden_size, intermediate_size, num_attention_heads, attention_probs_dropout_prob, hidden_dropout_prob, qkv_bias).to(device)
+            block = EncoderBlock(hidden_size, intermediate_size, num_attention_heads, attention_probs_dropout_prob, hidden_dropout_prob, qkv_bias)
             self.blocks.append(block)
 
 
@@ -52,9 +83,9 @@ class EncoderBlock(nn.Module):
     def __init__(self, hidden_size:int, intermediate_size:int, num_attention_heads:int=4, attention_probs_dropout_prob:float=0.0, hidden_dropout_prob:float=0.0, qkv_bias=True):
         super(EncoderBlock, self).__init__()
         self.norm1 = nn.LayerNorm(hidden_size)
-        self.MHA = MultiHeadAttention(hidden_size, num_attention_heads, attention_probs_dropout_prob, hidden_dropout_prob, qkv_bias).to(device)
+        self.MHA = MultiHeadAttention(hidden_size, num_attention_heads, attention_probs_dropout_prob, hidden_dropout_prob, qkv_bias)
         self.norm2 = nn.LayerNorm(hidden_size)
-        self.mlp = MLP(hidden_size, intermediate_size, hidden_dropout_prob).to(device)
+        self.mlp = MLP(hidden_size, intermediate_size, hidden_dropout_prob)
     
     def forward(self, X):
         MHA_X = self.norm1(X)
@@ -160,7 +191,7 @@ class MultiHeadAttention(nn.Module):
         self.qkv_bias = qkv_bias
         self.heads = nn.ModuleList([])
         for _ in range(self.num_attention_heads):
-            head = Scaled_Dot_Product_Attention(self.hidden_size, self.attention_head_size, attention_probs_dropout_prob, bias=self.qkv_bias).to(device)
+            head = Scaled_Dot_Product_Attention(self.hidden_size, self.attention_head_size, attention_probs_dropout_prob, bias=self.qkv_bias)
             self.heads.append(head)
         
         self.output_projection = nn.Linear(self.all_head_size, self.hidden_size)
@@ -220,7 +251,7 @@ class Embeddings(nn.Module):
     """
     def __init__(self, hidden_size:int, image_size:int, patch_size:int=16, num_channels:int=3, hidden_dropout_prob:float=0.0):
         super(Embeddings, self).__init__()
-        self.patch_embeddings = PatchEmbeddings(image_size, hidden_size, patch_size, num_channels).to(device)
+        self.patch_embeddings = PatchEmbeddings(image_size, hidden_size, patch_size, num_channels)
         self.cls_token = nn.Parameter(torch.randn(1, 1, hidden_size))
         self.position_embeddings = nn.Parameter(torch.randn(1, self.patch_embeddings.num_patches+1, hidden_size))
         self.dropout = nn.Dropout(hidden_dropout_prob)
@@ -258,10 +289,10 @@ class ViT(nn.Module):
     def __init__(self, image_size:int, hidden_size:int, num_hidden_layers:int, intermediate_size, num_classes:int, num_attention_heads:int=4, 
                  hidden_dropout_prob:float=0.1, attention_probs_dropout_prob:float=0.1, num_channels:int=3, patch_size:int=16, qkv_bias:bool=True):
         super(ViT, self).__init__()
-        self.embeddings = Embeddings(hidden_size, image_size, patch_size, num_channels, hidden_dropout_prob).to(device)
+        self.embeddings = Embeddings(hidden_size, image_size, patch_size, num_channels, hidden_dropout_prob)
         self.encoder = Encoder(num_hidden_layers, hidden_size, intermediate_size, num_attention_heads, 
-                               attention_probs_dropout_prob, hidden_dropout_prob, qkv_bias).to(device)
-        self.classifier = nn.Linear(hidden_size, num_classes).to(device)
+                               attention_probs_dropout_prob, hidden_dropout_prob, qkv_bias)
+        self.classifier = nn.Linear(hidden_size, num_classes)
         self.apply(self._init_weights)
 
     def forward(self, X):
